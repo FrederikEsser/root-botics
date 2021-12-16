@@ -1,4 +1,5 @@
-(ns root-botics.game)
+(ns root-botics.game
+  (:require [root-botics.util :as ut]))
 
 (def fall {:clearings {:fox-1     {:suit          :fox
                                    :priority      1
@@ -60,3 +61,23 @@
                                    :slots    2
                                    :pieces   [{:name :ruin
                                                :type :building}]}}})
+
+(def marquise-de-cat {:name      :marquise-de-cat
+                      :warriors  25
+                      :tokens    {:keep 1
+                                  :wood 8}
+                      :buildings {:sawmill   6
+                                  :workshop  6
+                                  :recruiter 6}})
+
+(defn recruit [game {:keys [player clearing quantity]}]
+  (let [{:keys [warriors]} (get-in game [:players player])
+        {:keys [idx]} (ut/get-piece-idx game [:map :clearings clearing :pieces] {:player player
+                                                                                 :type   :warrior})]
+    (assert (>= warriors quantity) (str "Recruit error: Can't recruit " quantity " warriors for " player " who has only " warriors " in supply."))
+    (-> game
+        (update-in [:players player :warriors] - quantity)
+        (cond-> idx (update-in [:map :clearings clearing :pieces idx :quantity] + quantity)
+                (not idx) (update-in [:map :clearings clearing :pieces] (comp vec conj) {:player   player
+                                                                                         :type     :warrior
+                                                                                         :quantity quantity})))))

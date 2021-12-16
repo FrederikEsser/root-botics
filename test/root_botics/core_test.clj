@@ -35,3 +35,32 @@
                         (is (= c1 (:opposite-from c2))
                             (str c1 " isn't the opposite corner from " opposite-from))))))
              doall)))))
+
+(deftest recruit-test
+  (testing "Recruit"
+    (is (= (-> {:players {:marquise-de-cat {:warriors 25}}
+                :map     {:clearings {:fox-1 {}}}}
+               (recruit {:player   :marquise-de-cat
+                         :clearing :fox-1
+                         :quantity 2}))
+           {:players {:marquise-de-cat {:warriors 23}}
+            :map     {:clearings {:fox-1 {:pieces [{:player   :marquise-de-cat
+                                                    :type     :warrior
+                                                    :quantity 2}]}}}}))
+    (is (= (-> {:players {:marquise-de-cat {:warriors 23}}
+                :map     {:clearings {:fox-1 {:pieces [{:player   :marquise-de-cat
+                                                        :type     :warrior
+                                                        :quantity 2}]}}}}
+               (recruit {:player   :marquise-de-cat
+                         :clearing :fox-1
+                         :quantity 1}))
+           {:players {:marquise-de-cat {:warriors 22}}
+            :map     {:clearings {:fox-1 {:pieces [{:player   :marquise-de-cat
+                                                    :type     :warrior
+                                                    :quantity 3}]}}}}))
+    (is (thrown-with-msg? AssertionError #"Recruit error:"
+                          (-> {:players {:marquise-de-cat {:warriors 3}}
+                               :map     {:clearings {:fox-1 {}}}}
+                              (recruit {:player   :marquise-de-cat
+                                        :clearing :fox-1
+                                        :quantity 4}))))))
