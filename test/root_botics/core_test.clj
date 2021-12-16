@@ -64,3 +64,154 @@
                               (recruit {:player   :marquise-de-cat
                                         :clearing :fox-1
                                         :quantity 4}))))))
+
+(deftest move-test
+  (testing "Move"
+    (is (= (-> {:map {:clearings {:fox-1    {:pieces [{:player   :marquise-de-cat
+                                                       :type     :warrior
+                                                       :quantity 1}]
+                                             :paths  #{:rabbit-2}}
+                                  :rabbit-2 {}}}}
+               (move {:player   :marquise-de-cat
+                      :quantity 1
+                      :from     :fox-1
+                      :to       :rabbit-2}))
+           {:map {:clearings {:fox-1    {:paths #{:rabbit-2}}
+                              :rabbit-2 {:pieces [{:player   :marquise-de-cat
+                                                   :type     :warrior
+                                                   :quantity 1}]}}}}))
+    (is (= (-> {:map {:clearings {:fox-1    {:pieces [{:player   :marquise-de-cat
+                                                       :type     :warrior
+                                                       :quantity 3}]
+                                             :paths  #{:rabbit-2}}
+                                  :rabbit-2 {}}}}
+               (move {:player   :marquise-de-cat
+                      :quantity 2
+                      :from     :fox-1
+                      :to       :rabbit-2}))
+           {:map {:clearings {:fox-1    {:pieces [{:player   :marquise-de-cat
+                                                   :type     :warrior
+                                                   :quantity 1}]
+                                         :paths  #{:rabbit-2}}
+                              :rabbit-2 {:pieces [{:player   :marquise-de-cat
+                                                   :type     :warrior
+                                                   :quantity 2}]}}}}))
+    (is (thrown-with-msg? AssertionError #"Take error:"
+                          (-> {:map {:clearings {:fox-1    {:pieces [{:player   :marquise-de-cat
+                                                                      :type     :warrior
+                                                                      :quantity 1}]
+                                                            :paths  #{:rabbit-2}}
+                                                 :rabbit-2 {}}}}
+                              (move {:player   :marquise-de-cat
+                                     :quantity 2
+                                     :from     :fox-1
+                                     :to       :rabbit-2}))))
+    (is (thrown-with-msg? AssertionError #"Move error:"
+                          (-> {:map {:clearings {:fox-1    {:pieces [{:player   :marquise-de-cat
+                                                                      :type     :warrior
+                                                                      :quantity 1}]
+                                                            :paths  #{:rabbit-2}}
+                                                 :rabbit-2 {}}}}
+                              (move {:player   :marquise-de-cat
+                                     :quantity 0
+                                     :from     :fox-1
+                                     :to       :rabbit-2}))))
+    (testing "rule"
+      (is (= (-> {:map {:clearings {:fox-1    {:pieces [{:player   :marquise-de-cat
+                                                         :type     :warrior
+                                                         :quantity 2}
+                                                        {:player   :eyrie-dynasties
+                                                         :type     :warrior
+                                                         :quantity 1}]
+                                               :paths  #{:rabbit-2}}
+                                    :rabbit-2 {:pieces [{:player   :marquise-de-cat
+                                                         :type     :warrior
+                                                         :quantity 1}
+                                                        {:player   :eyrie-dynasties
+                                                         :type     :warrior
+                                                         :quantity 1}]}}}}
+                 (move {:player   :marquise-de-cat
+                        :quantity 1
+                        :from     :fox-1
+                        :to       :rabbit-2}))
+             {:map {:clearings {:fox-1    {:pieces [{:player   :marquise-de-cat
+                                                     :type     :warrior
+                                                     :quantity 1}
+                                                    {:player   :eyrie-dynasties
+                                                     :type     :warrior
+                                                     :quantity 1}]
+                                           :paths  #{:rabbit-2}}
+                                :rabbit-2 {:pieces [{:player   :marquise-de-cat
+                                                     :type     :warrior
+                                                     :quantity 2}
+                                                    {:player   :eyrie-dynasties
+                                                     :type     :warrior
+                                                     :quantity 1}]}}}}))
+      (is (= (-> {:map {:clearings {:fox-1    {:pieces [{:player   :marquise-de-cat
+                                                         :type     :warrior
+                                                         :quantity 1}
+                                                        {:player   :eyrie-dynasties
+                                                         :type     :warrior
+                                                         :quantity 1}]
+                                               :paths  #{:rabbit-2}}
+                                    :rabbit-2 {:pieces [{:player   :marquise-de-cat
+                                                         :type     :warrior
+                                                         :quantity 2}
+                                                        {:player   :eyrie-dynasties
+                                                         :type     :warrior
+                                                         :quantity 1}]}}}}
+                 (move {:player   :marquise-de-cat
+                        :quantity 1
+                        :from     :fox-1
+                        :to       :rabbit-2}))
+             {:map {:clearings {:fox-1    {:pieces [{:player   :eyrie-dynasties
+                                                     :type     :warrior
+                                                     :quantity 1}]
+                                           :paths  #{:rabbit-2}}
+                                :rabbit-2 {:pieces [{:player   :marquise-de-cat
+                                                     :type     :warrior
+                                                     :quantity 3}
+                                                    {:player   :eyrie-dynasties
+                                                     :type     :warrior
+                                                     :quantity 1}]}}}}))
+      (is (thrown-with-msg? AssertionError #"Move error:"
+                            (-> {:map {:clearings {:fox-1    {:pieces [{:player   :marquise-de-cat
+                                                                        :type     :warrior
+                                                                        :quantity 1}
+                                                                       {:player   :eyrie-dynasties
+                                                                        :type     :warrior
+                                                                        :quantity 1}]
+                                                              :paths  #{:rabbit-2}}
+                                                   :rabbit-2 {:pieces [{:player   :marquise-de-cat
+                                                                        :type     :warrior
+                                                                        :quantity 1}
+                                                                       {:player   :eyrie-dynasties
+                                                                        :type     :warrior
+                                                                        :quantity 1}]}}}}
+                                (move {:player   :marquise-de-cat
+                                       :quantity 1
+                                       :from     :fox-1
+                                       :to       :rabbit-2}))))
+      (is (thrown-with-msg? AssertionError #"Move error:"
+                            (-> {:map {:clearings {:fox-1    {:pieces [{:player   :marquise-de-cat
+                                                                        :type     :warrior
+                                                                        :quantity 1}
+                                                                       {:player   :eyrie-dynasties
+                                                                        :type     :warrior
+                                                                        :quantity 1}]
+                                                              :paths  #{:rabbit-2}}
+                                                   :rabbit-2 {}}}}
+                                (move {:player   :marquise-de-cat
+                                       :quantity 1
+                                       :from     :fox-1
+                                       :to       :rabbit-2})))))
+    (is (thrown-with-msg? AssertionError #"Move error:"
+                          (-> {:map {:clearings {:fox-1    {:pieces [{:player   :marquise-de-cat
+                                                                      :type     :warrior
+                                                                      :quantity 1}]
+                                                            :paths  #{:rabbit-3}}
+                                                 :rabbit-2 {}}}}
+                              (move {:player   :marquise-de-cat
+                                     :quantity 1
+                                     :from     :fox-1
+                                     :to       :rabbit-2}))))))

@@ -1,5 +1,15 @@
 (ns root-botics.util)
 
+(defn dissoc-if-empty [map key]
+  (cond-> map
+          (empty? (get map key)) (dissoc key)))
+
+(defn vec-remove
+  "remove elem in coll"
+  [coll pos]
+  (let [vcoll (vec coll)]
+    (vec (concat (subvec vcoll 0 pos) (subvec vcoll (inc pos))))))
+
 (defn match [data-1]
   (fn [data-2]
     (->> data-1
@@ -18,3 +28,9 @@
     (-> game
         (update-in path vec)
         (as-> game (apply update-in game (concat path [idx]) f args)))))
+
+(defn count-pieces [pieces]
+  (->> pieces
+       (map (fn [{:keys [quantity]}]
+              (or quantity 1)))
+       (apply + 0)))

@@ -1,5 +1,6 @@
 (ns root-botics.game
-  (:require [root-botics.util :as ut]))
+  (:require [root-botics.util :as ut]
+            [medley.core :as medley]))
 
 (def fall {:clearings {:fox-1     {:suit          :fox
                                    :priority      1
@@ -70,14 +71,75 @@
                                   :workshop  6
                                   :recruiter 6}})
 
-(defn recruit [game {:keys [player clearing quantity]}]
+(def eyrie-dynasties {:name      :eyrie-dynasties
+                      :warriors  20
+                      :buildings {:roost 7}})
+
+(defn put-piece [game {:keys [piece clearing]}]
+  (let [quantity (:quantity piece)
+        {:keys [idx]} (ut/get-piece-idx game [:map :clearings clearing :pieces] (select-keys piece [:player :type :name]))]
+    (if (and quantity idx)
+      (update-in game [:map :clearings clearing :pieces idx :quantity] + quantity)
+      (update-in game [:map :clearings clearing :pieces] (comp vec conj) piece))))
+
+(defn take-piece [game {:keys [piece clearing]}]
+  (let [quantity (:quantity piece)
+        {existing-piece :piece
+         idx            :idx} (ut/get-piece-idx game [:map :clearings clearing :pieces] (select-keys piece [:player :type :name]))]
+    (assert existing-piece (str "Take error: " piece " is not found in " clearing "."))
+    (when quantity
+      (assert (:quantity existing-piece) (str "Take error: " existing-piece " has no quantity."))
+      (assert (<= quantity (:quantity existing-piece)) (str "Take error: " existing-piece " quantity is < " quantity)))
+    (if (and quantity
+             (< quantity (:quantity existing-piece)))
+      (update-in game [:map :clearings clearing :pieces idx :quantity] - quantity)
+      (-> game
+          (update-in [:map :clearings clearing :pieces] ut/vec-remove idx)
+          (update-in [:map :clearings clearing] ut/dissoc-if-empty :pieces)))))
+
+(defn recruit [game {:keys [player quantity clearing]}]
   (let [{:keys [warriors]} (get-in game [:players player])
-        {:keys [idx]} (ut/get-piece-idx game [:map :clearings clearing :pieces] {:player player
-                                                                                 :type   :warrior})]
-    (assert (>= warriors quantity) (str "Recruit error: Can't recruit " quantity " warriors for " player " who has only " warriors " in supply."))
+        piece {:player   player
+               :type     :warrior
+               :quantity quantity}]
+    (assert (>= warriors quantity)
+            (str "Recruit error: " player " has too few warriors in supply (" warriors "<" quantity ")."))
     (-> game
         (update-in [:players player :warriors] - quantity)
-        (cond-> idx (update-in [:map :clearings clearing :pieces idx :quantity] + quantity)
-                (not idx) (update-in [:map :clearings clearing :pieces] (comp vec conj) {:player   player
-                                                                                         :type     :warrior
-                                                                                         :quantity quantity})))))
+        (put-piece {:piece    piece
+                    :clearing clearing}))))
+
+(defn get-ruler [game {:keys [clearing]}]
+  (let [player-pieces (->> (get-in game [:map :clearings clearing :pieces])
+                           (filter :player)
+                           (filter (comp #{:warrior :building} :type))
+                           (group-by :player)
+                           (medley/map-vals ut/count-pieces))
+        most-pieces   (->> player-pieces
+                           vals
+                           (apply max 1))
+        candidates    (->> player-pieces
+                           (medley/filter-vals #(= % most-pieces))
+                           keys)]
+    (when (= 1 (count candidates))
+      (first candidates))))
+
+(defn rules? [game {:keys [player clearing]}]
+  (= player (get-ruler game {:clearing clearing})))
+
+(defn move [game {:keys [player quantity from to]}]
+  (assert (pos? quantity) (str "Move error: " player " must move at least 1 warrior."))
+  (assert (or (= player (get-ruler game {:clearing from}))
+              (= player (get-ruler game {:clearing to})))
+          (str "Move error: " player " rules neither " from " nor " to "."))
+  (assert (-> (get-in game [:map :clearings from :paths])
+              (contains? to))
+          (str "Move error: " from " doesn't have a path to " to "."))
+  (let [piece {:player   player
+               :type     :warrior
+               :quantity quantity}]
+    (-> game
+        (take-piece {:piece    piece
+                     :clearing from})
+        (put-piece {:piece    piece
+                    :clearing to}))))
