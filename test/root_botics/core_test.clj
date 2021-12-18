@@ -215,3 +215,47 @@
                                      :quantity 1
                                      :from     :fox-1
                                      :to       :rabbit-2}))))))
+
+(deftest build-test
+  (testing "Build"
+    (is (= (-> {:players {:marquise-de-cat {:buildings {:sawmill 6}}}
+                :map     {:clearings {:fox-1 {:slots 1}}}}
+               (build {:player   :marquise-de-cat
+                       :building :sawmill
+                       :clearing :fox-1}))
+           {:players {:marquise-de-cat {:buildings {:sawmill 5}}}
+            :map     {:clearings {:fox-1 {:slots  1
+                                          :pieces [{:player :marquise-de-cat
+                                                    :name   :sawmill
+                                                    :type   :building}]}}}}))
+    (is (= (-> {:players {:marquise-de-cat {:buildings {:sawmill 1}}}
+                :map     {:clearings {:fox-1 {:slots  2
+                                              :pieces [{:player :marquise-de-cat
+                                                        :name   :sawmill
+                                                        :type   :building}]}}}}
+               (build {:player   :marquise-de-cat
+                       :building :sawmill
+                       :clearing :fox-1}))
+           {:players {:marquise-de-cat {:buildings {:sawmill 0}}}
+            :map     {:clearings {:fox-1 {:slots  2
+                                          :pieces [{:player :marquise-de-cat
+                                                    :name   :sawmill
+                                                    :type   :building}
+                                                   {:player :marquise-de-cat
+                                                    :name   :sawmill
+                                                    :type   :building}]}}}}))
+    (is (thrown-with-msg? AssertionError #"Build error:"
+                          (-> {:players {:marquise-de-cat {:buildings {:sawmill 0}}}
+                               :map     {:clearings {:fox-1 {:slots 1}}}}
+                              (build {:player   :marquise-de-cat
+                                      :building :sawmill
+                                      :clearing :fox-1}))))
+    (is (thrown-with-msg? AssertionError #"Build error:"
+                          (-> {:players {:marquise-de-cat {:buildings {:sawmill 1}}}
+                               :map     {:clearings {:fox-1 {:slots  1
+                                                             :pieces [{:player :marquise-de-cat
+                                                                       :name   :sawmill
+                                                                       :type   :building}]}}}}
+                              (build {:player   :marquise-de-cat
+                                      :building :sawmill
+                                      :clearing :fox-1}))))))

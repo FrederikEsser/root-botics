@@ -143,3 +143,21 @@
                      :clearing from})
         (put-piece {:piece    piece
                     :clearing to}))))
+
+(defn build [game {:keys [player building clearing]}]
+  (let [{:keys [buildings]} (get-in game [:players player])
+        supply      (get buildings building)
+        {:keys [slots pieces]} (get-in game [:map :clearings clearing])
+        empty-slots (->> pieces
+                         (filter (comp #{:building} :type))
+                         count
+                         (- slots))
+        piece       {:player player
+                     :name   building
+                     :type   :building}]
+    (assert (pos? supply) (str "Build error: " player " has no " building " in supply."))
+    (assert (pos? empty-slots) (str "Build error: " clearing " has no empty slots."))
+    (-> game
+        (update-in [:players player :buildings building] dec)
+        (put-piece {:piece    piece
+                    :clearing clearing}))))
