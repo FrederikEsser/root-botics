@@ -1,5 +1,8 @@
 (ns root-botics.util)
 
+(defn plus [n m]
+  (if n (+ n m) m))
+
 (defn dissoc-if-empty [map key]
   (cond-> map
           (empty? (get map key)) (dissoc key)))
@@ -33,4 +36,12 @@
   (->> pieces
        (map (fn [{:keys [quantity]}]
               (or quantity 1)))
+       (apply + 0)))
+
+(defn count-warriors [pieces player]
+  (->> pieces
+       (keep (fn [{:keys [quantity] :as piece}]
+               (when (and (= player (:player piece))
+                          (= :warrior (:type piece)))
+                 quantity)))
        (apply + 0)))

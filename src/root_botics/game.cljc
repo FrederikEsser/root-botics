@@ -97,6 +97,17 @@
           (update-in [:map :clearings clearing :pieces] ut/vec-remove idx)
           (update-in [:map :clearings clearing] ut/dissoc-if-empty :pieces)))))
 
+(defn remove-piece [game {:keys [piece clearing]}]
+  (let [{:keys [player type name quantity]} piece]
+    (-> game
+        (take-piece {:piece    piece
+                     :clearing clearing})
+        (as-> game
+              (case type
+                :warrior (update-in game [:players player :warriors] ut/plus quantity)
+                :building (update-in game [:players player :buildings name] ut/plus 1)
+                :token (update-in game [:players player :tokens name] ut/plus 1))))))
+
 (defn recruit [game {:keys [player quantity clearing]}]
   (let [{:keys [warriors]} (get-in game [:players player])
         piece {:player   player
@@ -160,4 +171,53 @@
     (-> game
         (update-in [:players player :buildings building] dec)
         (put-piece {:piece    piece
+                    :clearing clearing}))))
+
+(defn roll-die []
+  (rand-int 4))
+
+(defn take-hits [game {:keys [player hits clearing]}]
+  (let [{:keys [pieces]} (get-in game [:map :clearings clearing])
+        warriors     (ut/count-warriors pieces player)
+        other-pieces (->> pieces
+                          (filter (comp #{player} :player))
+                          (remove (comp #{:warrior} :type))
+                          shuffle                           ; randomize buildings
+                          (sort-by :type)
+                          reverse                           ; put tokens before buildings
+                          (take (- hits warriors))
+                          (map (fn [piece]                  ; prepare params for reduce remove-piece
+                                 {:piece    piece
+                                  :clearing clearing})))]
+    (-> game
+        (cond-> (pos? warriors) (remove-piece {:piece    {:player   player
+                                  :type     :warrior
+                                  :quantity (min hits warriors)}
+                                               :clearing clearing}))
+        (as-> game (reduce remove-piece game other-pieces)))))
+
+(defn battle [game {:keys [attacker defender clearing extra-hits rolls]
+                    :or   {extra-hits 0}}]
+  (let [{:keys [pieces]} (get-in game [:map :clearings clearing])
+        attacker-warriors (ut/count-warriors pieces attacker)
+        defender-warriors (ut/count-warriors pieces defender)
+        defenseless?      (zero? defender-warriors)
+        extra-hits        (cond-> extra-hits
+                                  defenseless? inc)
+        [attacker-roll
+         defender-roll] (->> (or rolls
+                                 [(roll-die)
+                                  (roll-die)])
+                             (sort >))
+        attacker-hits     (+ (min attacker-roll attacker-warriors)
+                             extra-hits)
+        defender-hits     (min defender-roll defender-warriors)]
+    (assert (pos? attacker-warriors) (str "Battle error: " attacker " has no warriors in " clearing "."))
+    (assert (some (comp #{defender} :player) pieces) (str "Battle error: " defender " has no pieces in " clearing "."))
+    (-> game
+        (take-hits {:player   defender
+                    :hits     attacker-hits
+                    :clearing clearing})
+        (take-hits {:player   attacker
+                    :hits     defender-hits
                     :clearing clearing}))))

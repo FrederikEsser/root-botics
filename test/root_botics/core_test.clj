@@ -1,6 +1,12 @@
 (ns root-botics.core-test
   (:require [clojure.test :refer :all]
+            [root-botics.test-utils :refer :all]
             [root-botics.game :refer :all]))
+
+(defn fixture [f]
+  (with-rand-seed 123 (f)))
+
+(use-fixtures :each fixture)
 
 (deftest fall-test
   (testing "Fall"
@@ -47,14 +53,14 @@
             :map     {:clearings {:fox-1 {:pieces [{:player   :marquise-de-cat
                                                     :type     :warrior
                                                     :quantity 2}]}}}}))
-    (is (= (-> {:players {:marquise-de-cat {:warriors 23}}
+    (is (= (-> {:players {:marquise-de-cat {:warriors 1}}
                 :map     {:clearings {:fox-1 {:pieces [{:player   :marquise-de-cat
                                                         :type     :warrior
                                                         :quantity 2}]}}}}
                (recruit {:player   :marquise-de-cat
                          :clearing :fox-1
                          :quantity 1}))
-           {:players {:marquise-de-cat {:warriors 22}}
+           {:players {:marquise-de-cat {:warriors 0}}
             :map     {:clearings {:fox-1 {:pieces [{:player   :marquise-de-cat
                                                     :type     :warrior
                                                     :quantity 3}]}}}}))
@@ -259,3 +265,23 @@
                               (build {:player   :marquise-de-cat
                                       :building :sawmill
                                       :clearing :fox-1}))))))
+
+(deftest battle-test
+  (testing "Battle"
+    (is (= (-> {:players {:marquise-de-cat {:warriors 5}
+                          :eyrie-dynasties {:warriors 10}}
+                :map     {:clearings {:fox-1 {:pieces [{:player   :marquise-de-cat
+                                                        :type     :warrior
+                                                        :quantity 2}
+                                                       {:player   :eyrie-dynasties
+                                                        :type     :warrior
+                                                        :quantity 1}]}}}}
+               (battle {:attacker :marquise-de-cat
+                        :defender :eyrie-dynasties
+                        :clearing :fox-1
+                        :rolls    [1 1]}))
+           {:players {:marquise-de-cat {:warriors 6}
+                      :eyrie-dynasties {:warriors 11}}
+            :map     {:clearings {:fox-1 {:pieces [{:player   :marquise-de-cat
+                                                    :type     :warrior
+                                                    :quantity 1}]}}}}))))
