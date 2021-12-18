@@ -173,6 +173,18 @@
         (put-piece {:piece    piece
                     :clearing clearing}))))
 
+(defn place-token [game {:keys [player token clearing]}]
+  (let [{:keys [tokens]} (get-in game [:players player])
+        supply (get tokens token)
+        piece  {:player player
+                :name   token
+                :type   :token}]
+    (assert (pos? supply) (str "Token error: " player " has no " token " in supply."))
+    (-> game
+        (update-in [:players player :tokens token] dec)
+        (put-piece {:piece    piece
+                    :clearing clearing}))))
+
 (defn roll-die []
   (rand-int 4))
 
